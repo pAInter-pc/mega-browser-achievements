@@ -24,12 +24,144 @@ from PyQt6.QtWidgets import (
     QScrollArea,
     QGridLayout,
     QFrame,
+    QComboBox,
+    QCheckBox,
+    QFormLayout,
 )
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineDownloadRequest
 
 
-HOME_URL = "https://www.google.com"
+# ======================= ТЕМЫ =======================
+
+THEMES = ["dark", "light", "red", "green", "blue", "yellow"]
+
+
+def apply_theme(app: QApplication, theme_name: str):
+    palette = QPalette()
+
+    if theme_name == "light":
+        bg = QColor("#FFFFFF")
+        base = QColor("#F5F5F5")
+        text = QColor("#202124")
+        button = QColor("#E0E0E0")
+        highlight = QColor("#1A73E8")
+    elif theme_name == "red":
+        bg = QColor("#210909")
+        base = QColor("#2B0D0D")
+        text = QColor("#FCE8E6")
+        button = QColor("#3C1010")
+        highlight = QColor("#EA4335")
+    elif theme_name == "green":
+        bg = QColor("#0B2614")
+        base = QColor("#12331D")
+        text = QColor("#E6F4EA")
+        button = QColor("#18402A")
+        highlight = QColor("#34A853")
+    elif theme_name == "blue":
+        bg = QColor("#0C1A2B")
+        base = QColor("#10233A")
+        text = QColor("#E8F0FE")
+        button = QColor("#153455")
+        highlight = QColor("#4285F4")
+    elif theme_name == "yellow":
+        bg = QColor("#282208")
+        base = QColor("#332B0A")
+        text = QColor("#FFFDE7")
+        button = QColor("#4E3F0D")
+        highlight = QColor("#FBC02D")
+    else:  # dark (по умолчанию)
+        bg = QColor("#202124")
+        base = QColor("#171717")
+        text = QColor("#E8EAED")
+        button = QColor("#303134")
+        highlight = QColor("#8AB4F8")
+
+    palette.setColor(QPalette.ColorRole.Window, bg)
+    palette.setColor(QPalette.ColorRole.WindowText, text)
+    palette.setColor(QPalette.ColorRole.Base, base)
+    palette.setColor(QPalette.ColorRole.AlternateBase, bg)
+    palette.setColor(QPalette.ColorRole.ToolTipBase, text)
+    palette.setColor(QPalette.ColorRole.ToolTipText, text)
+    palette.setColor(QPalette.ColorRole.Text, text)
+    palette.setColor(QPalette.ColorRole.Button, button)
+    palette.setColor(QPalette.ColorRole.ButtonText, text)
+    palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)
+    palette.setColor(QPalette.ColorRole.Highlight, highlight)
+    palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.black)
+
+    app.setPalette(palette)
+    app.setStyleSheet(
+        """
+        QMainWindow, QDialog {
+            background-color: """ + bg.name() + """;
+            color: """ + text.name() + """;
+            font-family: Segoe UI, sans-serif;
+            font-size: 10pt;
+        }
+        QToolBar {
+            background-color: #292A2D;
+            border: none;
+            spacing: 4px;
+        }
+        QLineEdit {
+            background-color: #202124;
+            border-radius: 14px;
+            border: 1px solid #5F6368;
+            padding: 4px 10px;
+            color: #E8EAED;
+        }
+        QLineEdit:focus {
+            border: 1px solid #8AB4F8;
+        }
+        QListWidget {
+            background-color: #171717;
+            border: 1px solid #3C4043;
+        }
+        QPushButton {
+            background-color: #303134;
+            border: 1px solid #5F6368;
+            border-radius: 4px;
+            padding: 4px 10px;
+        }
+        QPushButton:hover {
+            background-color: #3C4043;
+        }
+        QTabBar::tab {
+            background-color: #292A2D;
+            color: #E8EAED;
+            padding: 4px 10px;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            margin-right: 2px;
+        }
+        QTabBar::tab:selected {
+            background-color: #202124;
+        }
+        QTabWidget::pane {
+            border-top: 1px solid #3C4043;
+        }
+        QMenuBar {
+            background-color: #292A2D;
+            color: #E8EAED;
+        }
+        QMenuBar::item:selected {
+            background-color: #3C4043;
+        }
+        QMenu {
+            background-color: #292A2D;
+            color: #E8EAED;
+            border: 1px solid #3C4043;
+        }
+        QMenu::item:selected {
+            background-color: #3C4043;
+        }
+        """
+    )
+
+
+# HOME_URL теперь берём из настроек, но дефолт:
+DEFAULT_HOME_URL = "https://www.google.com"
 
 
 # ======================= POPUP АЧИВКИ =======================
@@ -97,7 +229,7 @@ class AchievementPopup(QDialog):
         self.show()
 
 
-# ======================= ДИАЛОГИ =======================
+# ======================= ДИАЛОГИ: история, закладки, загрузки =======================
 
 class HistoryDialog(QDialog):
     def __init__(self, parent, history):
@@ -269,7 +401,9 @@ class AchievementsGridDialog(QDialog):
         status_color = "#7CFC00" if ach["unlocked"] else "#888888"
 
         status_label = QLabel(status)
-        status_label.setStyleSheet(f"color: {status_color}; font-weight: bold; font-size: 11px;")
+        status_label.setStyleSheet(
+            f"color: {status_color}; font-weight: bold; font-size: 11px;"
+        )
         layout.addWidget(status_label)
 
         title_label = QLabel(ach["title"])
@@ -284,16 +418,20 @@ class AchievementsGridDialog(QDialog):
 
         comment_label = QLabel(ach["comment"])
         comment_label.setWordWrap(True)
-        comment_label.setStyleSheet("font-size: 11px; color: #9AA0A6; font-style: italic;")
+        comment_label.setStyleSheet(
+            "font-size: 11px; color: #9AA0A6; font-style: italic;"
+        )
         layout.addWidget(comment_label)
 
-        frame.setStyleSheet("""
+        frame.setStyleSheet(
+            """
             QFrame {
                 background-color: #202124;
                 border-radius: 8px;
                 border: 1px solid #3C4043;
             }
-        """)
+            """
+        )
         return frame
 
 
@@ -342,7 +480,6 @@ class AchievementManager:
                 "comment": "Зайти на ya.ru.",
                 "unlocked": False,
             },
-
             # первые шаги
             "first_manual_url": {
                 "title": "Первый шаг",
@@ -362,7 +499,6 @@ class AchievementManager:
                 "comment": "Перейти на 10 разных сайтов за одну сессию.",
                 "unlocked": False,
             },
-
             # вкладки
             "five_tabs": {
                 "title": "Многозадачник",
@@ -382,7 +518,6 @@ class AchievementManager:
                 "comment": "Оставить только одну открытую вкладку.",
                 "unlocked": False,
             },
-
             # история и закладки
             "history_50": {
                 "title": "Память как у слона",
@@ -402,7 +537,6 @@ class AchievementManager:
                 "comment": "Открыть одну и ту же закладку 5 раз.",
                 "unlocked": False,
             },
-
             # загрузки
             "first_download": {
                 "title": "Лутер",
@@ -416,7 +550,6 @@ class AchievementManager:
                 "comment": "Завершить 10 загрузок.",
                 "unlocked": False,
             },
-
             # навигация
             "back_forward": {
                 "title": "Назад в будущее",
@@ -430,7 +563,6 @@ class AchievementManager:
                 "comment": "Обновить страницу 20 раз за сессию.",
                 "unlocked": False,
             },
-
             # время
             "night_owl": {
                 "title": "Ночной наблюдатель",
@@ -438,7 +570,6 @@ class AchievementManager:
                 "comment": "Открыть браузер после полуночи.",
                 "unlocked": False,
             },
-
             # меню
             "menu_master": {
                 "title": "Инженер‑испытатель",
@@ -446,7 +577,6 @@ class AchievementManager:
                 "comment": "Открыть все пункты меню хотя бы по разу.",
                 "unlocked": False,
             },
-
             # НОВЫЕ — время и сессии
             "marathon": {
                 "title": "Марафонец",
@@ -466,7 +596,6 @@ class AchievementManager:
                 "comment": "Открыть браузер в выходной.",
                 "unlocked": False,
             },
-
             # НОВЫЕ — тип сайтов
             "wiki_master": {
                 "title": "Энциклопедист",
@@ -486,7 +615,6 @@ class AchievementManager:
                 "comment": "Посетить 10 разных магазинов.",
                 "unlocked": False,
             },
-
             # НОВЫЕ — поведение
             "tab_tourist": {
                 "title": "Таб‑турист",
@@ -506,7 +634,6 @@ class AchievementManager:
                 "comment": "20 раз подряд жать Назад/Вперёд.",
                 "unlocked": False,
             },
-
             # НОВЫЕ — ошибки и сети
             "error_404_hunter": {
                 "title": "404 Hunter",
@@ -526,12 +653,36 @@ class AchievementManager:
                 "comment": "20 открытий https и ни одного http за сессию.",
                 "unlocked": False,
             },
-
             # НОВАЯ — AFK
             "afk_tab": {
                 "title": "Tab‑Zombie",
                 "desc": "Оставь вкладку — она сама всё сделает.",
                 "comment": "Не трогать активную вкладку 10 минут.",
+                "unlocked": False,
+            },
+            # НОВЫЕ — настройки и темы
+            "settings_opened": {
+                "title": "Любитель настроек",
+                "desc": "Пора всё настроить под себя.",
+                "comment": "Открыть окно настроек.",
+                "unlocked": False,
+            },
+            "theme_switcher": {
+                "title": "Смена имиджа",
+                "desc": "Новая тема — новый ты.",
+                "comment": "Сменить тему хотя бы один раз.",
+                "unlocked": False,
+            },
+            "light_side": {
+                "title": "Светлая сторона",
+                "desc": "Добро пожаловать в белый мир.",
+                "comment": "Включить светлую тему.",
+                "unlocked": False,
+            },
+            "dark_side": {
+                "title": "Тёмная сторона",
+                "desc": "Киберпанк никогда не спит.",
+                "comment": "Вернуться к тёмной теме.",
                 "unlocked": False,
             },
         }
@@ -550,16 +701,16 @@ class AchievementManager:
             "bookmarks": False,
             "incognito": False,
             "achievements": False,
+            "settings": False,
         }
 
         self.bookmark_add_count = 0
-        self.bookmark_add_times = []  # timestamps
+        self.bookmark_add_times = []
         self.bookmark_open_counter = {}
 
         self.download_started = 0
         self.download_finished = 0
 
-        # новые счётчики
         self.start_time = datetime.now()
         self.tab_switches = 0
         self.back_forward_chain = 0
@@ -571,6 +722,9 @@ class AchievementManager:
         self.shop_domains = set()
         self.error_404_urls = set()
         self.last_action_time = datetime.now()
+
+        # счётчик попробованных тем за сессию
+        self.session_themes = set()
 
     # --------- служебные ---------
 
@@ -611,7 +765,6 @@ class AchievementManager:
             self.unlock("first_run")
             self.settings.setValue("first_run_flag", False)
 
-        # streak по дням
         streak = self.settings.value("daily_streak", 0, type=int)
         if last_date:
             last = datetime.fromisoformat(last_date).date()
@@ -630,7 +783,6 @@ class AchievementManager:
         if streak >= 7:
             self.unlock("daily_user")
 
-        # выходной
         if today.weekday() >= 5:
             self.unlock("weekend_user")
 
@@ -646,11 +798,10 @@ class AchievementManager:
                 self.unlock("ten_sites_session")
 
             lower = url.lower()
-            # ya.ru
+
             if "ya.ru" in lower:
                 self.unlock("ya_ru")
 
-            # https/http
             if lower.startswith("https://"):
                 self.https_count += 1
             elif lower.startswith("http://"):
@@ -659,31 +810,26 @@ class AchievementManager:
             if self.https_count >= 20 and self.http_count == 0:
                 self.unlock("https_only")
 
-            # wiki
             if "wiki" in lower:
                 host = lower.split("/")[2]
                 self.wiki_domains.add(host)
                 if len(self.wiki_domains) >= 5:
                     self.unlock("wiki_master")
 
-            # video
             if "/watch" in lower or "/video" in lower:
                 self.video_pages.add(url)
                 if len(self.video_pages) >= 5:
                     self.unlock("video_fan")
 
-            # shop
             if any(word in lower for word in ["cart", "checkout", "store", "shop"]):
                 host = lower.split("/")[2]
                 self.shop_domains.add(host)
                 if len(self.shop_domains) >= 10:
                     self.unlock("shopaholic")
 
-            # успешная загрузка сбрасывает цепочку неудачных reload
             self.failed_reload_chain = 0
 
         else:
-            # провал загрузки — потенциальный 404
             if "404" in title or "not found" in title.lower():
                 self.error_404_urls.add(url)
                 if len(self.error_404_urls) >= 3:
@@ -715,7 +861,6 @@ class AchievementManager:
         if self.bookmark_add_count >= 10:
             self.unlock("bookmarks_10")
 
-        # спидран: 5 закладок за минуту
         one_min_ago = now - timedelta(minutes=1)
         self.bookmark_add_times = [t for t in self.bookmark_add_times if t >= one_min_ago]
         if len(self.bookmark_add_times) >= 5:
@@ -783,8 +928,6 @@ class AchievementManager:
         if self.tab_switches >= 50:
             self.unlock("tab_tourist")
 
-    # --------- AFK и марафон ---------
-
     def check_session_time(self):
         if datetime.now() - self.start_time >= timedelta(hours=2):
             self.unlock("marathon")
@@ -793,11 +936,20 @@ class AchievementManager:
         if datetime.now() - self.last_action_time >= timedelta(minutes=10):
             self.unlock("afk_tab")
 
+    # темы
+    def on_theme_changed(self, theme_name: str):
+        self.session_themes.add(theme_name)
+        self.unlock("theme_switcher")
+        if theme_name == "light":
+            self.unlock("light_side")
+        if theme_name == "dark":
+            self.unlock("dark_side")
+
 
 # ======================= ВКЛАДКА =======================
 
 class BrowserTab(QWidget):
-    def __init__(self, main_window, url=HOME_URL, incognito=False):
+    def __init__(self, main_window, url, incognito=False):
         super().__init__()
         self.main_window = main_window
         self.incognito = incognito
@@ -876,17 +1028,89 @@ class BrowserTab(QWidget):
         download.finished.connect(finished)
 
 
+# ======================= ДИАЛОГ НАСТРОЕК =======================
+
+class SettingsDialog(QDialog):
+    def __init__(self, parent, settings: QSettings):
+        super().__init__(parent)
+        self.setWindowTitle("Настройки")
+        self.resize(420, 260)
+        self.settings = settings
+
+        layout = QVBoxLayout(self)
+
+        form = QFormLayout()
+        layout.addLayout(form)
+
+        # тема
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItems(THEMES)
+        current_theme = self.settings.value("appearance/theme", "dark", type=str)
+        if current_theme in THEMES:
+            self.theme_combo.setCurrentText(current_theme)
+        form.addRow("Тема:", self.theme_combo)
+
+        # домашняя страница
+        self.home_edit = QLineEdit()
+        home_url = self.settings.value("general/home_url", DEFAULT_HOME_URL, type=str)
+        self.home_edit.setText(home_url)
+        form.addRow("Домашняя страница:", self.home_edit)
+
+        # сохранять историю
+        self.keep_history_check = QCheckBox("Сохранять историю посещений")
+        keep_history = self.settings.value("privacy/keep_history", True, type=bool)
+        self.keep_history_check.setChecked(keep_history)
+        layout.addWidget(self.keep_history_check)
+
+        # кнопка очистки данных
+        self.btn_clear_data = QPushButton("Очистить историю и закладки")
+        layout.addWidget(self.btn_clear_data)
+
+        # кнопки OK/Cancel
+        btns = QHBoxLayout()
+        btn_ok = QPushButton("OK")
+        btn_cancel = QPushButton("Отмена")
+        btns.addWidget(btn_ok)
+        btns.addWidget(btn_cancel)
+        layout.addLayout(btns)
+
+        btn_ok.clicked.connect(self.accept)
+        btn_cancel.clicked.connect(self.reject)
+        self.btn_clear_data.clicked.connect(self.on_clear_data_clicked)
+
+    def on_clear_data_clicked(self):
+        if QMessageBox.question(
+            self,
+            "Очистка данных",
+            "Очистить историю и закладки?\n\n"
+            "Это действие нельзя отменить.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        ) == QMessageBox.StandardButton.Yes:
+            self.parent().clearHistoryAndBookmarks()
+            QMessageBox.information(self, "Готово", "История и закладки очищены.")
+
+    def get_values(self):
+        return {
+            "theme": self.theme_combo.currentText(),
+            "home_url": self.home_edit.text().strip() or DEFAULT_HOME_URL,
+            "keep_history": self.keep_history_check.isChecked(),
+        }
+
+
 # ======================= ГЛАВНОЕ ОКНО =======================
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, app: QApplication):
         super().__init__()
+        self.app = app
         self.setWindowTitle("Mega Browser с ачивками")
         self.resize(1200, 800)
 
         self.settings = QSettings("Perplexity", "MegaBrowser")
         self.data_dir = os.path.join(
-            QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppDataLocation),
+            QStandardPaths.writableLocation(
+                QStandardPaths.StandardLocation.AppDataLocation
+            ),
             "MegaBrowserData",
         )
         os.makedirs(self.data_dir, exist_ok=True)
@@ -901,6 +1125,11 @@ class MainWindow(QMainWindow):
         self.achievement_manager.checkFirstRunAndDates()
         self.achievement_manager.mark_night_owl(datetime.now().hour)
 
+        # текущий HOME_URL берём из настроек
+        self.home_url = self.settings.value(
+            "general/home_url", DEFAULT_HOME_URL, type=str
+        )
+
         self.tab_widget = QTabWidget()
         self.tab_widget.setTabsClosable(True)
         self.tab_widget.tabCloseRequested.connect(self.closeTab)
@@ -911,12 +1140,11 @@ class MainWindow(QMainWindow):
         self.createDropDownMenu()
         self.updateAchievementsMenuTitle()
 
-        self.addNewTab(HOME_URL)
+        self.addNewTab(self.home_url)
 
-        # таймеры для марафона и AFK
         self.session_timer = QTimer(self)
         self.session_timer.timeout.connect(self.achievement_manager.check_session_time)
-        self.session_timer.start(60_000)  # раз в минуту
+        self.session_timer.start(60_000)
 
         self.afk_timer = QTimer(self)
         self.afk_timer.timeout.connect(self.achievement_manager.check_afk)
@@ -943,6 +1171,9 @@ class MainWindow(QMainWindow):
     # ---------- История ----------
 
     def addToHistory(self, url: str, title: str):
+        keep_history = self.settings.value("privacy/keep_history", True, type=bool)
+        if not keep_history:
+            return
         item = {
             "url": url,
             "title": title,
@@ -956,6 +1187,13 @@ class MainWindow(QMainWindow):
         dlg = HistoryDialog(self, self.history)
         if dlg.exec():
             self.saveJson(self.history_file, self.history)
+
+    # очистка истории и закладок из настроек
+    def clearHistoryAndBookmarks(self):
+        self.history.clear()
+        self.bookmarks.clear()
+        self.saveJson(self.history_file, self.history)
+        self.saveJson(self.bookmarks_file, self.bookmarks)
 
     # ---------- Закладки ----------
 
@@ -1016,7 +1254,7 @@ class MainWindow(QMainWindow):
             "Технический инкогнито не поддерживается в этой версии Qt/PyQt.\n"
             "Открывается обычная вкладка с пометкой [Incognito].",
         )
-        self.addNewTab(HOME_URL, incognito=True)
+        self.addNewTab(self.home_url, incognito=True)
 
     # ---------- Вкладки ----------
 
@@ -1024,7 +1262,9 @@ class MainWindow(QMainWindow):
         w = self.tab_widget.currentWidget()
         return w if isinstance(w, BrowserTab) else None
 
-    def addNewTab(self, url=HOME_URL, incognito=False):
+    def addNewTab(self, url=None, incognito=False):
+        if url is None:
+            url = self.home_url
         tab = BrowserTab(self, url=url, incognito=incognito)
         index = self.tab_widget.addTab(tab, "Новая вкладка")
         self.tab_widget.setCurrentIndex(index)
@@ -1092,7 +1332,7 @@ class MainWindow(QMainWindow):
     def goHome(self):
         tab = self.currentBrowserTab()
         if tab:
-            tab.view.load(QUrl(HOME_URL))
+            tab.view.load(QUrl(self.home_url))
             self.achievement_manager.unlock("home_used")
 
     # ---------- Тулбар и меню ----------
@@ -1136,7 +1376,7 @@ class MainWindow(QMainWindow):
 
         act_new_tab = QAction("+", self)
         act_new_tab.setToolTip("Новая вкладка")
-        act_new_tab.triggered.connect(lambda: self.addNewTab(HOME_URL))
+        act_new_tab.triggered.connect(lambda: self.addNewTab(self.home_url))
         toolbar.addAction(act_new_tab)
 
     def createDropDownMenu(self):
@@ -1177,7 +1417,17 @@ class MainWindow(QMainWindow):
 
         drop.addSeparator()
 
-        # подменю ачивок с счётчиком
+        # настройки
+        act_settings = QAction("Настройки", self)
+        act_settings.triggered.connect(self.openSettingsDialog)
+        act_settings.triggered.connect(
+            lambda: self.achievement_manager.mark_menu_item("settings")
+        )
+        drop.addAction(act_settings)
+
+        drop.addSeparator()
+
+        # подменю ачивок
         self.achievements_menu = drop.addMenu("")
         self.updateAchievementsMenuTitle()
 
@@ -1195,99 +1445,38 @@ class MainWindow(QMainWindow):
         )
         self.achievements_menu.addAction(act_ach_grid)
 
+    # ---------- Настройки ----------
 
-# ======================= ТЁМНАЯ ТЕМА =======================
+    def openSettingsDialog(self):
+        self.achievement_manager.unlock("settings_opened")
+        dlg = SettingsDialog(self, self.settings)
+        if dlg.exec():
+            values = dlg.get_values()
+            # тема
+            self.settings.setValue("appearance/theme", values["theme"])
+            apply_theme(self.app, values["theme"])
+            self.achievement_manager.on_theme_changed(values["theme"])
+            # домашняя страница
+            self.home_url = values["home_url"]
+            self.settings.setValue("general/home_url", self.home_url)
+            # история
+            self.settings.setValue(
+                "privacy/keep_history", values["keep_history"]
+            )
 
-def apply_dark_theme(app: QApplication):
-    palette = QPalette()
+    # ======================= MAIN =======================
 
-    palette.setColor(QPalette.ColorRole.Window, QColor("#202124"))
-    palette.setColor(QPalette.ColorRole.WindowText, Qt.GlobalColor.white)
-    palette.setColor(QPalette.ColorRole.Base, QColor("#171717"))
-    palette.setColor(QPalette.ColorRole.AlternateBase, QColor("#202124"))
-    palette.setColor(QPalette.ColorRole.ToolTipBase, Qt.GlobalColor.white)
-    palette.setColor(QPalette.ColorRole.ToolTipText, Qt.GlobalColor.white)
-    palette.setColor(QPalette.ColorRole.Text, Qt.GlobalColor.white)
-    palette.setColor(QPalette.ColorRole.Button, QColor("#303134"))
-    palette.setColor(QPalette.ColorRole.ButtonText, Qt.GlobalColor.white)
-    palette.setColor(QPalette.ColorRole.BrightText, Qt.GlobalColor.red)
-
-    palette.setColor(QPalette.ColorRole.Highlight, QColor("#8AB4F8"))
-    palette.setColor(QPalette.ColorRole.HighlightedText, Qt.GlobalColor.black)
-
-    app.setPalette(palette)
-    app.setStyleSheet("""
-        QMainWindow, QDialog {
-            background-color: #202124;
-            color: #E8EAED;
-            font-family: Segoe UI, sans-serif;
-            font-size: 10pt;
-        }
-        QToolBar {
-            background-color: #292A2D;
-            border: none;
-            spacing: 4px;
-        }
-        QLineEdit {
-            background-color: #202124;
-            border-radius: 14px;
-            border: 1px solid #5F6368;
-            padding: 4px 10px;
-            color: #E8EAED;
-        }
-        QLineEdit:focus {
-            border: 1px solid #8AB4F8;
-        }
-        QListWidget {
-            background-color: #171717;
-            border: 1px solid #3C4043;
-        }
-        QPushButton {
-            background-color: #303134;
-            border: 1px solid #5F6368;
-            border-radius: 4px;
-            padding: 4px 10px;
-        }
-        QPushButton:hover {
-            background-color: #3C4043;
-        }
-        QTabBar::tab {
-            background-color: #292A2D;
-            color: #E8EAED;
-            padding: 4px 10px;
-            border-top-left-radius: 6px;
-            border-top-right-radius: 6px;
-            margin-right: 2px;
-        }
-        QTabBar::tab:selected {
-            background-color: #202124;
-        }
-        QTabWidget::pane {
-            border-top: 1px solid #3C4043;
-        }
-        QMenuBar {
-            background-color: #292A2D;
-            color: #E8EAED;
-        }
-        QMenuBar::item:selected {
-            background-color: #3C4043;
-        }
-        QMenu {
-            background-color: #292A2D;
-            color: #E8EAED;
-            border: 1px solid #3C4043;
-        }
-        QMenu::item:selected {
-            background-color: #3C4043;
-        }
-    """)
-
-
-# ======================= MAIN =======================
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    apply_dark_theme(app)
-    window = MainWindow()
+
+    # читаем тему из настроек до создания окна
+    base_settings = QSettings("Perplexity", "MegaBrowser")
+    theme = base_settings.value("appearance/theme", "dark", type=str)
+    if theme not in THEMES:
+        theme = "dark"
+    apply_theme(app, theme)
+
+    window = MainWindow(app)
     window.show()
     sys.exit(app.exec())
