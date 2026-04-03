@@ -32,9 +32,10 @@ from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebEngineCore import QWebEngineDownloadRequest
 
 
-# ======================= ТЕМЫ =======================
-
 THEMES = ["dark", "light", "red", "green", "blue", "yellow"]
+
+LOCAL_HOME_URL = "about:achivpy"
+DEFAULT_HOME_URL = LOCAL_HOME_URL
 
 
 def apply_theme(app: QApplication, theme_name: str):
@@ -70,7 +71,7 @@ def apply_theme(app: QApplication, theme_name: str):
         text = QColor("#FFFDE7")
         button = QColor("#4E3F0D")
         highlight = QColor("#FBC02D")
-    else:  # dark (по умолчанию)
+    else:
         bg = QColor("#202124")
         base = QColor("#171717")
         text = QColor("#E8EAED")
@@ -94,8 +95,8 @@ def apply_theme(app: QApplication, theme_name: str):
     app.setStyleSheet(
         """
         QMainWindow, QDialog {
-            background-color: """ + bg.name() + """;
-            color: """ + text.name() + """;
+            background-color: #202124;
+            color: #E8EAED;
             font-family: Segoe UI, sans-serif;
             font-size: 10pt;
         }
@@ -160,11 +161,117 @@ def apply_theme(app: QApplication, theme_name: str):
     )
 
 
-# HOME_URL теперь берём из настроек, но дефолт:
-DEFAULT_HOME_URL = "https://www.google.com"
+def build_home_page_html(ach_manager: "AchievementManager") -> str:
+    unlocked = ach_manager.unlocked_count()
+    total = ach_manager.total_count()
 
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="ru">
+    <head>
+        <meta charset="utf-8">
+        <title>AchivPy — домашняя</title>
+        <style>
+            body {{
+                margin: 0;
+                padding: 24px;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                background: #202124;
+                color: #E8EAED;
+            }}
+            .container {{
+                max-width: 960px;
+                margin: 0 auto;
+            }}
+            h1 {{
+                font-size: 28px;
+                margin-bottom: 4px;
+            }}
+            .subtitle {{
+                color: #9AA0A6;
+                margin-bottom: 24px;
+            }}
+            .grid {{
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                gap: 12px;
+                margin-bottom: 24px;
+            }}
+            .tile {{
+                background: #292A2D;
+                border-radius: 10px;
+                padding: 12px 14px;
+                border: 1px solid #3C4043;
+                cursor: pointer;
+                text-decoration: none;
+                color: inherit;
+                transition: background 0.15s, transform 0.1s;
+            }}
+            .tile:hover {{
+                background: #3C4043;
+                transform: translateY(-1px);
+            }}
+            .tile-title {{
+                font-weight: 600;
+                margin-bottom: 4px;
+            }}
+            .tile-desc {{
+                font-size: 12px;
+                color: #9AA0A6;
+            }}
+            .ach-box {{
+                background: #1F1F1F;
+                border-radius: 10px;
+                padding: 14px 16px;
+                border: 1px solid #3C4043;
+                margin-bottom: 16px;
+            }}
+        </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>AchivPy</h1>
+        <div class="subtitle">
+          Браузер с ачивками. Получено ачивок: <b>{unlocked}</b> из <b>{total}</b>.
+        </div>
 
-# ======================= POPUP АЧИВКИ =======================
+        <div class="ach-box">
+          <div style="font-weight:600; margin-bottom:4px;">Ачивки</div>
+          <div style="font-size:13px; color:#9AA0A6;">
+            Открывай сайты, переключай вкладки, скачивай файлы и меняй темы,
+            чтобы открывать новые достижения.
+          </div>
+        </div>
+
+        <div style="font-weight:600; margin-bottom:8px;">Быстрый доступ</div>
+        <div class="grid">
+          <a class="tile" href="https://www.google.com">
+            <div class="tile-title">🔎 Google</div>
+            <div class="tile-desc">Быстрый поиск по вебу.</div>
+          </a>
+          <a class="tile" href="https://www.youtube.com">
+            <div class="tile-title">🎬 YouTube</div>
+            <div class="tile-desc">Видео, музыка и стримы.</div>
+          </a>
+          <a class="tile" href="https://github.com">
+            <div class="tile-title">💻 GitHub</div>
+            <div class="tile-desc">Код, репозитории и проекты.</div>
+          </a>
+          <a class="tile" href="https://store.steampowered.com">
+            <div class="tile-title">🎮 Steam</div>
+            <div class="tile-desc">Игры и скидки.</div>
+          </a>
+          <a class="tile" href="https://ya.ru">
+            <div class="tile-title">🌐 ya.ru</div>
+            <div class="tile-desc">Другой интернет.</div>
+          </a>
+        </div>
+      </div>
+    </body>
+    </html>
+    """
+    return html
+
 
 class AchievementPopup(QDialog):
     def __init__(self, parent, title: str, desc: str, timeout: int = 3000):
@@ -228,8 +335,6 @@ class AchievementPopup(QDialog):
         self.move(QPoint(x, y))
         self.show()
 
-
-# ======================= ДИАЛОГИ: история, закладки, загрузки =======================
 
 class HistoryDialog(QDialog):
     def __init__(self, parent, history):
@@ -346,8 +451,6 @@ class DownloadsDialog(QDialog):
             self.list_widget.addItem(text)
 
 
-# ======================= ПОДРОБНЫЙ СПИСОК АЧИВОК =======================
-
 class AchievementsGridDialog(QDialog):
     def __init__(self, parent, achievements: dict, unlocked_count: int, total: int):
         super().__init__(parent)
@@ -459,15 +562,12 @@ class AchievementsDialog(QDialog):
         btn_close.clicked.connect(self.close)
 
 
-# ======================= АЧИВКИ: ЛОГИКА =======================
-
 class AchievementManager:
     def __init__(self, main_window):
         self.main_window = main_window
-        self.settings = QSettings("Perplexity", "MegaBrowserAchievements")
+        self.settings = QSettings("AchivPy", "AchivPyAchievements")
 
         self.achievements = {
-            # базовые
             "first_run": {
                 "title": "Привет, мир!",
                 "desc": "Наслаждайся пребыванием!",
@@ -480,7 +580,6 @@ class AchievementManager:
                 "comment": "Зайти на ya.ru.",
                 "unlocked": False,
             },
-            # первые шаги
             "first_manual_url": {
                 "title": "Первый шаг",
                 "desc": "Ну здравствуй, интернет.",
@@ -499,7 +598,6 @@ class AchievementManager:
                 "comment": "Перейти на 10 разных сайтов за одну сессию.",
                 "unlocked": False,
             },
-            # вкладки
             "five_tabs": {
                 "title": "Многозадачник",
                 "desc": "Одного сайта мало.",
@@ -518,7 +616,6 @@ class AchievementManager:
                 "comment": "Оставить только одну открытую вкладку.",
                 "unlocked": False,
             },
-            # история и закладки
             "history_50": {
                 "title": "Память как у слона",
                 "desc": "Ты многое повидал.",
@@ -537,7 +634,6 @@ class AchievementManager:
                 "comment": "Открыть одну и ту же закладку 5 раз.",
                 "unlocked": False,
             },
-            # загрузки
             "first_download": {
                 "title": "Лутер",
                 "desc": "Забираешь всё, что лежит.",
@@ -550,7 +646,6 @@ class AchievementManager:
                 "comment": "Завершить 10 загрузок.",
                 "unlocked": False,
             },
-            # навигация
             "back_forward": {
                 "title": "Назад в будущее",
                 "desc": "История любит повторы.",
@@ -563,21 +658,18 @@ class AchievementManager:
                 "comment": "Обновить страницу 20 раз за сессию.",
                 "unlocked": False,
             },
-            # время
             "night_owl": {
                 "title": "Ночной наблюдатель",
                 "desc": "Интернет не спит.",
                 "comment": "Открыть браузер после полуночи.",
                 "unlocked": False,
             },
-            # меню
             "menu_master": {
                 "title": "Инженер‑испытатель",
                 "desc": "Ты тестируешь всё, что видишь.",
                 "comment": "Открыть все пункты меню хотя бы по разу.",
                 "unlocked": False,
             },
-            # НОВЫЕ — время и сессии
             "marathon": {
                 "title": "Марафонец",
                 "desc": "Сессия длиною в жизнь.",
@@ -596,7 +688,6 @@ class AchievementManager:
                 "comment": "Открыть браузер в выходной.",
                 "unlocked": False,
             },
-            # НОВЫЕ — тип сайтов
             "wiki_master": {
                 "title": "Энциклопедист",
                 "desc": "Знания — сила.",
@@ -615,7 +706,6 @@ class AchievementManager:
                 "comment": "Посетить 10 разных магазинов.",
                 "unlocked": False,
             },
-            # НОВЫЕ — поведение
             "tab_tourist": {
                 "title": "Таб‑турист",
                 "desc": "Прыжок по вкладкам.",
@@ -634,7 +724,6 @@ class AchievementManager:
                 "comment": "20 раз подряд жать Назад/Вперёд.",
                 "unlocked": False,
             },
-            # НОВЫЕ — ошибки и сети
             "error_404_hunter": {
                 "title": "404 Hunter",
                 "desc": "Этой страницы не существует… но ты её нашёл.",
@@ -653,14 +742,12 @@ class AchievementManager:
                 "comment": "20 открытий https и ни одного http за сессию.",
                 "unlocked": False,
             },
-            # НОВАЯ — AFK
             "afk_tab": {
                 "title": "Tab‑Zombie",
                 "desc": "Оставь вкладку — она сама всё сделает.",
                 "comment": "Не трогать активную вкладку 10 минут.",
                 "unlocked": False,
             },
-            # НОВЫЕ — настройки и темы
             "settings_opened": {
                 "title": "Любитель настроек",
                 "desc": "Пора всё настроить под себя.",
@@ -723,10 +810,7 @@ class AchievementManager:
         self.error_404_urls = set()
         self.last_action_time = datetime.now()
 
-        # счётчик попробованных тем за сессию
         self.session_themes = set()
-
-    # --------- служебные ---------
 
     def loadUnlocked(self):
         for key in self.achievements.keys():
@@ -753,8 +837,6 @@ class AchievementManager:
         popup = AchievementPopup(self.main_window, a["title"], a["desc"], timeout=3500)
         popup.show_at_bottom_right(self.main_window)
         self.main_window.updateAchievementsMenuTitle()
-
-    # --------- первый запуск + дни ---------
 
     def checkFirstRunAndDates(self):
         first = self.settings.value("first_run_flag", True, type=bool)
@@ -785,8 +867,6 @@ class AchievementManager:
 
         if today.weekday() >= 5:
             self.unlock("weekend_user")
-
-    # --------- триггеры URL/загрузки/навигации ---------
 
     def on_url_loaded(self, url: str, ok: bool, title: str):
         self.last_action_time = datetime.now()
@@ -936,7 +1016,6 @@ class AchievementManager:
         if datetime.now() - self.last_action_time >= timedelta(minutes=10):
             self.unlock("afk_tab")
 
-    # темы
     def on_theme_changed(self, theme_name: str):
         self.session_themes.add(theme_name)
         self.unlock("theme_switcher")
@@ -946,27 +1025,28 @@ class AchievementManager:
             self.unlock("dark_side")
 
 
-# ======================= ВКЛАДКА =======================
-
 class BrowserTab(QWidget):
     def __init__(self, main_window, url, incognito=False):
         super().__init__()
         self.main_window = main_window
         self.incognito = incognito
-
         self.last_load_ok = True
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
         self.view = QWebEngineView(self)
-
         self.view.urlChanged.connect(self.onUrlChanged)
         self.view.titleChanged.connect(self.onTitleChanged)
         self.view.loadFinished.connect(self.onLoadFinished)
         self.view.page().profile().downloadRequested.connect(self.onDownloadRequested)
 
-        self.view.load(QUrl(url))
+        if url == LOCAL_HOME_URL:
+            html = build_home_page_html(self.main_window.achievement_manager)
+            self.view.setHtml(html, QUrl(LOCAL_HOME_URL))
+        else:
+            self.view.load(QUrl(url))
+
         layout.addWidget(self.view)
 
     def onUrlChanged(self, url: QUrl):
@@ -983,6 +1063,10 @@ class BrowserTab(QWidget):
         self.last_load_ok = ok
         url = self.view.url().toString()
         title = self.view.title() or url
+
+        if url == LOCAL_HOME_URL:
+            return
+
         if ok:
             self.main_window.addToHistory(url, title)
             self.main_window.achievement_manager.on_url_loaded(url, ok=True, title=title)
@@ -1028,8 +1112,6 @@ class BrowserTab(QWidget):
         download.finished.connect(finished)
 
 
-# ======================= ДИАЛОГ НАСТРОЕК =======================
-
 class SettingsDialog(QDialog):
     def __init__(self, parent, settings: QSettings):
         super().__init__(parent)
@@ -1038,11 +1120,9 @@ class SettingsDialog(QDialog):
         self.settings = settings
 
         layout = QVBoxLayout(self)
-
         form = QFormLayout()
         layout.addLayout(form)
 
-        # тема
         self.theme_combo = QComboBox()
         self.theme_combo.addItems(THEMES)
         current_theme = self.settings.value("appearance/theme", "dark", type=str)
@@ -1050,23 +1130,19 @@ class SettingsDialog(QDialog):
             self.theme_combo.setCurrentText(current_theme)
         form.addRow("Тема:", self.theme_combo)
 
-        # домашняя страница
         self.home_edit = QLineEdit()
         home_url = self.settings.value("general/home_url", DEFAULT_HOME_URL, type=str)
         self.home_edit.setText(home_url)
         form.addRow("Домашняя страница:", self.home_edit)
 
-        # сохранять историю
         self.keep_history_check = QCheckBox("Сохранять историю посещений")
         keep_history = self.settings.value("privacy/keep_history", True, type=bool)
         self.keep_history_check.setChecked(keep_history)
         layout.addWidget(self.keep_history_check)
 
-        # кнопка очистки данных
         self.btn_clear_data = QPushButton("Очистить историю и закладки")
         layout.addWidget(self.btn_clear_data)
 
-        # кнопки OK/Cancel
         btns = QHBoxLayout()
         btn_ok = QPushButton("OK")
         btn_cancel = QPushButton("Отмена")
@@ -1082,8 +1158,7 @@ class SettingsDialog(QDialog):
         if QMessageBox.question(
             self,
             "Очистка данных",
-            "Очистить историю и закладки?\n\n"
-            "Это действие нельзя отменить.",
+            "Очистить историю и закладки?\n\nЭто действие нельзя отменить.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         ) == QMessageBox.StandardButton.Yes:
             self.parent().clearHistoryAndBookmarks()
@@ -1097,21 +1172,19 @@ class SettingsDialog(QDialog):
         }
 
 
-# ======================= ГЛАВНОЕ ОКНО =======================
-
 class MainWindow(QMainWindow):
     def __init__(self, app: QApplication):
         super().__init__()
         self.app = app
-        self.setWindowTitle("Mega Browser с ачивками")
+        self.setWindowTitle("AchivPy — браузер с ачивками")
         self.resize(1200, 800)
 
-        self.settings = QSettings("Perplexity", "MegaBrowser")
+        self.settings = QSettings("AchivPy", "AchivPy")
         self.data_dir = os.path.join(
             QStandardPaths.writableLocation(
                 QStandardPaths.StandardLocation.AppDataLocation
             ),
-            "MegaBrowserData",
+            "AchivPyData",
         )
         os.makedirs(self.data_dir, exist_ok=True)
         self.history_file = os.path.join(self.data_dir, "history.json")
@@ -1125,7 +1198,6 @@ class MainWindow(QMainWindow):
         self.achievement_manager.checkFirstRunAndDates()
         self.achievement_manager.mark_night_owl(datetime.now().hour)
 
-        # текущий HOME_URL берём из настроек
         self.home_url = self.settings.value(
             "general/home_url", DEFAULT_HOME_URL, type=str
         )
@@ -1150,8 +1222,6 @@ class MainWindow(QMainWindow):
         self.afk_timer.timeout.connect(self.achievement_manager.check_afk)
         self.afk_timer.start(60_000)
 
-    # ---------- JSON ----------
-
     def loadJson(self, path, default):
         if not os.path.exists(path):
             return default
@@ -1167,8 +1237,6 @@ class MainWindow(QMainWindow):
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print("Ошибка сохранения", path, e)
-
-    # ---------- История ----------
 
     def addToHistory(self, url: str, title: str):
         keep_history = self.settings.value("privacy/keep_history", True, type=bool)
@@ -1188,14 +1256,11 @@ class MainWindow(QMainWindow):
         if dlg.exec():
             self.saveJson(self.history_file, self.history)
 
-    # очистка истории и закладок из настроек
     def clearHistoryAndBookmarks(self):
         self.history.clear()
         self.bookmarks.clear()
         self.saveJson(self.history_file, self.history)
         self.saveJson(self.bookmarks_file, self.bookmarks)
-
-    # ---------- Закладки ----------
 
     def addCurrentToBookmarks(self):
         tab = self.currentBrowserTab()
@@ -1213,13 +1278,9 @@ class MainWindow(QMainWindow):
         dlg.exec()
         self.saveJson(self.bookmarks_file, self.bookmarks)
 
-    # ---------- Загрузки ----------
-
     def openDownloadsDialog(self):
         dlg = DownloadsDialog(self, self.downloads)
         dlg.exec()
-
-    # ---------- Ачивки ----------
 
     def openAchievementsDialog(self):
         dlg = AchievementsDialog(
@@ -1245,8 +1306,6 @@ class MainWindow(QMainWindow):
         if hasattr(self, "achievements_menu"):
             self.achievements_menu.setTitle(f"Ачивки ({unlocked}/{total})")
 
-    # ---------- Инкогнито (визуальное) ----------
-
     def openIncognitoTab(self):
         QMessageBox.information(
             self,
@@ -1255,8 +1314,6 @@ class MainWindow(QMainWindow):
             "Открывается обычная вкладка с пометкой [Incognito].",
         )
         self.addNewTab(self.home_url, incognito=True)
-
-    # ---------- Вкладки ----------
 
     def currentBrowserTab(self) -> BrowserTab | None:
         w = self.tab_widget.currentWidget()
@@ -1288,8 +1345,6 @@ class MainWindow(QMainWindow):
         tab = self.currentBrowserTab()
         if tab:
             tab.view.load(QUrl(url))
-
-    # ---------- Навигация ----------
 
     def updateUrlBar(self, url: str):
         self.url_bar.blockSignals(True)
@@ -1331,11 +1386,16 @@ class MainWindow(QMainWindow):
 
     def goHome(self):
         tab = self.currentBrowserTab()
-        if tab:
-            tab.view.load(QUrl(self.home_url))
-            self.achievement_manager.unlock("home_used")
+        if not tab:
+            return
 
-    # ---------- Тулбар и меню ----------
+        if self.home_url == LOCAL_HOME_URL:
+            html = build_home_page_html(self.achievement_manager)
+            tab.view.setHtml(html, QUrl(LOCAL_HOME_URL))
+        else:
+            tab.view.load(QUrl(self.home_url))
+
+        self.achievement_manager.unlock("home_used")
 
     def createToolBar(self):
         toolbar = QToolBar("Навигация", self)
@@ -1362,7 +1422,7 @@ class MainWindow(QMainWindow):
         toolbar.addSeparator()
 
         self.url_bar = QLineEdit()
-        self.url_bar.setPlaceholderText("Введите адрес или запрос Google")
+        self.url_bar.setPlaceholderText("Введите адрес или запрос")
         self.url_bar.returnPressed.connect(self.onUrlEntered)
         self.url_bar.setMinimumHeight(26)
         toolbar.addWidget(self.url_bar)
@@ -1417,7 +1477,6 @@ class MainWindow(QMainWindow):
 
         drop.addSeparator()
 
-        # настройки
         act_settings = QAction("Настройки", self)
         act_settings.triggered.connect(self.openSettingsDialog)
         act_settings.triggered.connect(
@@ -1427,7 +1486,6 @@ class MainWindow(QMainWindow):
 
         drop.addSeparator()
 
-        # подменю ачивок
         self.achievements_menu = drop.addMenu("")
         self.updateAchievementsMenuTitle()
 
@@ -1445,33 +1503,27 @@ class MainWindow(QMainWindow):
         )
         self.achievements_menu.addAction(act_ach_grid)
 
-    # ---------- Настройки ----------
-
     def openSettingsDialog(self):
         self.achievement_manager.unlock("settings_opened")
         dlg = SettingsDialog(self, self.settings)
         if dlg.exec():
             values = dlg.get_values()
-            # тема
             self.settings.setValue("appearance/theme", values["theme"])
             apply_theme(self.app, values["theme"])
             self.achievement_manager.on_theme_changed(values["theme"])
-            # домашняя страница
+
             self.home_url = values["home_url"]
             self.settings.setValue("general/home_url", self.home_url)
-            # история
+
             self.settings.setValue(
                 "privacy/keep_history", values["keep_history"]
             )
-
-    # ======================= MAIN =======================
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    # читаем тему из настроек до создания окна
-    base_settings = QSettings("Perplexity", "MegaBrowser")
+    base_settings = QSettings("AchivPy", "AchivPy")
     theme = base_settings.value("appearance/theme", "dark", type=str)
     if theme not in THEMES:
         theme = "dark"
