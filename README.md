@@ -72,5 +72,4 @@ pyinstaller --noconfirm --windowed --name "MegaBrowser" browser.py
 
 ## Лицензия
 
-Ты можешь указать любую лицензию (например MIT, GPL или оставить “All rights reserved”).  
-Если выберешь MIT, добавь файл `LICENSE` с текстом MIT-лицензии.
+А что собственно писать?
